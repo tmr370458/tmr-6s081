@@ -148,6 +148,7 @@ UPROGS=\
 	$U/_sync\
 	$U/_find\
 	$U/_xargs\
+	$U/_trace\
 
 
 
