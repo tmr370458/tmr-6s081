@@ -1,0 +1,18 @@
+# xv6 build files
+xv6/kernel/kernel
+xv6/user/*.asm
+xv6/user/*.sym
+xv6/user/*.o
+xv6/*.img
+
+# compiler output
+*.o
+*.d
+
+# editor
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db

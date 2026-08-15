@@ -1,46 +1,28 @@
-\# tmr-6s081
+# tmr-6s081
 
+MIT 6.S081 Operating System Engineering 学习记录。
 
+## Environment
 
-我的 MIT 6.S081 / xv6 学习记录。
+- OS: Windows + WSL2 Ubuntu
+- Emulator: QEMU
+- Kernel: xv6-riscv
 
+## Progress
 
+- [x] Environment setup
+- [x] Lab 1: Xv6 and Unix utilities
+- [ ] Lab 2: System calls
+- [ ] Lab 3: Page tables
+- [ ] Lab 4: Traps
+- [ ] Lab 5: Lazy allocation
+- [ ] Lab 6: Copy-on-write fork
+...
 
-这个仓库记录我学习操作系统过程中：
+## Notes
 
+学习过程中的操作系统笔记。
 
+## Labs
 
-\- xv6 实验
-
-\- RISC-V
-
-\- C 语言
-
-\- 操作系统原理
-
-\- 源码阅读
-
-\- 自己做的小实验
-
-
-
-\## Learning Path
-
-
-
-\- \[ ] System Calls
-
-\- \[ ] Page Tables
-
-\- \[ ] Traps
-
-\- \[ ] Interrupts
-
-\- \[ ] Scheduling
-
-\- \[ ] File System
-
-\- \[ ] Concurrency
-
-\- \[ ] Network
-
+实验代码和总结。
