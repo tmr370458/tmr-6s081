@@ -20,7 +20,7 @@ trampoline:
 .align 4
 .globl uservec
 uservec:    
-	#
+	# user into kernel
         # trap.c sets stvec to point here, so
         # traps from user space start here,
         # in supervisor mode, but with a
@@ -29,6 +29,7 @@ uservec:
 
         # save user a0 in sscratch so
         # a0 can be used to get at TRAPFRAME.
+        # sscratch = a0, write into sscratch
         csrw sscratch, a0
 
         # each process has a separate p->trapframe memory area,
@@ -69,6 +70,7 @@ uservec:
         sd t6, 280(a0)
 
 	# save the user a0 in p->trapframe->a0
+        # t0 = sscratch, read from sscratch
         csrr t0, sscratch
         sd t0, 112(a0)
 
@@ -99,6 +101,7 @@ uservec:
 
 .globl userret
 userret:
+        # kernel into user
         # usertrap() returns here, with user satp in a0.
         # return from kernel to user.
 

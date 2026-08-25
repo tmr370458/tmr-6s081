@@ -52,6 +52,22 @@ kvmmake(void)
   return kpgtbl;
 }
 
+void 
+kvmfreeproc(struct proc *p)
+{
+    pagetable_t kpagetable = p->kpagetable;
+  // reverse order of allocation
+  // 按分配顺序的逆序来销毁映射, 但不回收物理地址
+  ukvmunmap(kpagetable, p->kstack, PGSIZE/PGSIZE);
+  ukvmunmap(kpagetable, TRAMPOLINE, PGSIZE/PGSIZE);
+  ukvmunmap(kpagetable, (uint64)etext, (PHYSTOP-(uint64)etext)/PGSIZE);
+  ukvmunmap(kpagetable, KERNBASE, ((uint64)etext-KERNBASE)/PGSIZE);
+  ukvmunmap(kpagetable, PLIC, 0x400000/PGSIZE);
+  ukvmunmap(kpagetable, VIRTIO0, PGSIZE/PGSIZE);
+  ukvmunmap(kpagetable, UART0, PGSIZE/PGSIZE);
+  ufreewalk(kpagetable);
+}
+
 // add a mapping to the kernel page table.
 // only used when booting.
 // does not flush TLB or enable paging.
@@ -103,7 +119,7 @@ walk(pagetable_t pagetable, uint64 va, int alloc)
 
   for (int level = 2; level > 0; level--) {
     pte_t *pte = &pagetable[PX(level, va)];
-    if (*pte & PTE_V) {
+    if (*pte & PTE_V) {//1L：long 1
       pagetable = (pagetable_t)PTE2PA(*pte);
     } else {
       if (!alloc || (pagetable = (pde_t *)kalloc()) == 0)
@@ -112,7 +128,7 @@ walk(pagetable_t pagetable, uint64 va, int alloc)
       *pte = PA2PTE(pagetable) | PTE_V;
     }
   }
-  return &pagetable[PX(0, va)];
+  return &pagetable[PX(0, va)];//PX: get vpn[level] of va; return L0[px...], that is return the pte whose ppn includes pa's address 
 }
 
 // Look up a virtual address, return the physical address,
@@ -171,6 +187,7 @@ mappages(pagetable_t pagetable, uint64 va, uint64 size, uint64 pa, int perm)
     a += PGSIZE;
     pa += PGSIZE;
   }
+
   return 0;
 }
 
@@ -212,6 +229,28 @@ uvmunmap(pagetable_t pagetable, uint64 va, uint64 npages, int do_free)
   }
 }
 
+//uvmunmap cannot save the shared leaf node
+void
+kvmunmap(pagetable_t pagetable, uint64 va, uint64 npages)
+{
+  uint64 a;
+  pte_t *pte;
+
+  if((va % PGSIZE) != 0)
+    panic("kvmunmap: not aligned");
+
+  for(a = va; a < va + npages*PGSIZE; a += PGSIZE){
+    if((pte = walk(pagetable, a, 0)) == 0)
+      goto clean;
+    if((*pte & PTE_V) == 0)
+      goto clean;
+    if(PTE_FLAGS(*pte) == PTE_V)
+      panic("kvmunmap: not a leaf");
+
+    clean:
+      *pte = 0;
+  }
+}
 // Allocate PTEs and physical memory to grow a process from oldsz to
 // newsz, which need not be page aligned.  Returns new size or 0 on error.
 uint64
@@ -277,6 +316,24 @@ freewalk(pagetable_t pagetable)
     }
   }
   kfree((void *)pagetable);
+}
+
+//delete the panic of leaf node
+void
+kfreewalk(pagetable_t pagetable)
+{
+  // there are 2^9 = 512 PTEs in a page table.
+  for(int i = 0; i < 512; i++){
+    pte_t pte = pagetable[i];
+    if((pte & PTE_V) && (pte & (PTE_R|PTE_W|PTE_X)) == 0){
+      // this PTE points to a lower-level page table.
+      uint64 child = PTE2PA(pte);
+      kfreewalk((pagetable_t)child);
+      pagetable[i] = 0;
+    }
+    pagetable[i] = 0;
+  }
+  kfree((void*)pagetable);
 }
 
 // Free user memory pages,
@@ -485,4 +542,31 @@ ismapped(pagetable_t pagetable, uint64 va)
     return 1;
   }
   return 0;
+}
+
+void 
+vmprint_walk(pagetable_t pagetable, int level){
+    // there are 2^9 = 512 PTEs in a page table.
+  for (int i = 0; i < 512; i++) {
+    pte_t pte = pagetable[i];
+    if (pte & PTE_V) {
+      // this PTE points to a lower-level page table.
+      for(int j=0; j<level; j++){
+       printf(".. "); 
+      }
+      printf("%d: pte %p, pa %p\n ", i, pte, PTE2PA(pte));
+      
+      if((pte & (PTE_R|PTE_W|PTE_X)) == 0){
+        uint64 child = PTE2PA(pte);
+        vmprint_walk((pagetable_t)child, level+1);
+      }
+    } 
+  }
+}
+
+void
+vmprint(pagetable_t pagetable){
+    printf("page table %p\n", pagetable);
+    vmprint_walk(pagetable, 0);
+  
 }

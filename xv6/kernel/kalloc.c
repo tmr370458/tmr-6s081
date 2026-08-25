@@ -71,12 +71,53 @@ kalloc(void)
   struct run *r;
 
   acquire(&kmem.lock);
-  r = kmem.freelist;
+  r = kmem.freelist;//get the 1st page from the freelist
   if (r)
-    kmem.freelist = r->next;
+    kmem.freelist = r->next;  //forward shift
   release(&kmem.lock);
 
-  if (r)
+  if (r)  
     memset((char *)r, 5, PGSIZE); // fill with junk
   return (void *)r;
+}
+
+uint64
+freemem(void){
+  uint64 count=0;
+  struct run *r;
+  
+  acquire(&kmem.lock);
+  r = kmem.freelist;
+  while(r)
+  {
+    r = r->next;
+    count++;
+  }
+  release(&kmem.lock);
+
+
+  return count * PGSIZE;
+}
+
+uint64
+nproc(void)
+{
+  struct proc *p;
+  uint64 count = 0;
+
+
+  for(p = proc; p < &proc[NPROC]; p++)
+  {
+    acquire(&p->lock);
+
+
+    if(p->state != UNUSED)
+      count++;
+
+
+    release(&p->lock);
+  }
+
+
+  return count;
 }

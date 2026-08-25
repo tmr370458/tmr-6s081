@@ -23,3 +23,4 @@
 #define SYS_pause  22
 #define SYS_sync   23
 #define SYS_trace  24
+#define SYS_sysinfo   25

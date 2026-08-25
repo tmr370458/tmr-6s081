@@ -110,6 +110,7 @@ static struct proc *
 allocproc(void)
 {
   struct proc *p;
+  uint64 pa;
 
   for (p = proc; p < &proc[NPROC]; p++) {
     acquire(&p->lock);
@@ -134,7 +135,25 @@ found:
 
   // An empty user page table.
   p->pagetable = proc_pagetable(p);
+
+  // create a kernel pagetable
+  p->kpagetable = kvmmake();
+
+  if(p->kpagetable){
+    if((pa = kalloc())){
+      memset(pa, 0, PGSIZE);
+      kvmmap(p->kpagetable, p->kstack, pa, PGSIZE, PTE_R | PTE_W);
+    }else{
+      panic("allocproc: pa kalloc");
+    }
+  
+  }
   if (p->pagetable == 0) {
+    freeproc(p);
+    release(&p->lock);
+    return 0;
+  }
+  if (p->kpagetable == 0) {
     freeproc(p);
     release(&p->lock);
     return 0;
@@ -149,6 +168,7 @@ found:
   return p;
 }
 
+
 // free a proc structure and the data hanging from it,
 // including user pages.
 // p->lock must be held.
@@ -161,6 +181,7 @@ freeproc(struct proc *p)
   if (p->pagetable)
     proc_freepagetable(p->pagetable, p->sz);
   p->pagetable = 0;
+  
   p->sz = 0;
   p->pid = 0;
   p->name[0] = 0;
@@ -168,7 +189,18 @@ freeproc(struct proc *p)
   p->killed = 0;
   p->xstate = 0;
   p->state = UNUSED;
+
+  if (p->kpagetable){
+    kvmfreeproc(p);
+    p->kpagetable = 0;
+  }
+  if (p->kstack){
+    p->kstack;
+  }
 }
+
+
+
 
 // Create a user page table for a given process, with no user memory,
 // but with trampoline and trapframe pages.
@@ -182,7 +214,7 @@ proc_pagetable(struct proc *p)
   if (pagetable == 0)
     return 0;
 
-  // map the trampoline code (for system call return)
+  // map the trampoline code (for system call return)  
   // at the highest user virtual address.
   // only the supervisor uses it, on the way
   // to/from user space, so not PTE_U.
@@ -446,10 +478,15 @@ scheduler(void)
         // before jumping back to us.
         p->state = RUNNING;
         c->proc = p;
+
+        w_satp(MAKE_SATP(p->kpagetable));
+        sfence_vma();
         swtch(&c->context, &p->context);
 
         // Process is done running for now.
         // It should have changed its p->state before coming back.
+        kvminithart();
+
         c->proc = 0;
         found = 1;
       }
