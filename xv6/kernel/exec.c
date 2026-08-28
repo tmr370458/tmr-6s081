@@ -138,6 +138,10 @@ kexec(char *path, char **argv)
   p->trapframe->sp = sp;         // initial stack pointer
   proc_freepagetable(oldpagetable, oldsz);
 
+  //ch3.3 begin
+  copy_proc_to_kernel(p->pagetable, p->kpagetable, 0, sz);
+  //ch3.3 end
+
   return argc; // this ends up in a0, the first argument to main(argc, argv)
 
 bad:

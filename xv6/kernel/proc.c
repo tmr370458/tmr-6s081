@@ -258,6 +258,10 @@ userinit(void)
   p->cwd = namei("/");
 
   p->state = RUNNABLE;
+  
+  //ch3.3 begin
+  copy_proc_to_kernel(p->pagetable, p->kpagetable, 0, p->sz);
+  //ch3.3 end
 
   release(&p->lock);
 }
@@ -281,6 +285,11 @@ growproc(int n)
   } else if (n < 0) {
     sz = uvmdealloc(p->pagetable, sz, sz + n);
   }
+
+  //ch3.3 begin
+  copy_proc_to_kernel(p->pagetable, p->kpagetable, p->sz, sz);
+  //ch3.3 end
+
   p->sz = sz;
   return 0;
 }
@@ -331,6 +340,12 @@ kfork(void)
 
   acquire(&np->lock);
   np->state = RUNNABLE;
+
+  // part 3 begin
+  // 复制np
+  copy_proc_to_kernel(np->pagetable, np->kpagetable, 0, np->sz);
+  // part 3 end
+
   release(&np->lock);
 
   return pid;

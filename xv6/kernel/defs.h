@@ -175,6 +175,13 @@ int             ismapped(pagetable_t, uint64);
 uint64          vmfault(pagetable_t, uint64, int);
 void            vmprint(pagetable_t);
 
+// ch3.3 begin
+// copyin.c   
+int             copyin_new(pagetable_t , char *, uint64 , uint64 );
+int             copyinstr_new(pagetable_t , char *, uint64 , uint64 );
+void            copy_proc_to_kernel(pagetable_t, pagetable_t, uint64, uint64);
+// ch3.3 end
+
 // plic.c
 void            plicinit(void);
 void            plicinithart(void);

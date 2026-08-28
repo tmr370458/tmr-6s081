@@ -10,14 +10,14 @@ MIT 6.S081 Operating System Engineering 学习记录。
 
 ## Progress
 
-- [x] Environment setup
-- [x] Lab 1: Xv6 and Unix utilities
-- [ ] Lab 2: System calls
-- [ ] Lab 3: Page tables
+- [X] Environment setup
+- [X] Lab 1: Xv6 and Unix utilities
+- [X] Lab 2: System calls
+- [X] Lab 3: Page tables
 - [ ] Lab 4: Traps
 - [ ] Lab 5: Lazy allocation
 - [ ] Lab 6: Copy-on-write fork
-...
+  ...
 
 ## Notes
 
