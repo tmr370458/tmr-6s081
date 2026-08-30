@@ -12,8 +12,8 @@ main()
   sysinfo(&info);
 
 
-  printf("free memory: %d\n", info.freemem);
-  printf("process num: %d\n", info.nproc);
+  printf("free memory: %lu\n", info.freemem);
+  printf("process num: %lu\n", info.nproc);
 
 
   exit(0);

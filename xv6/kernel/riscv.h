@@ -381,6 +381,17 @@ icache_fence()
   asm volatile("fence.i" ::: "memory");
 }
 
+// ch4.2 begin
+// get fp 
+static inline uint64
+r_fp()
+{
+  uint64 x;
+  asm volatile("mv %0, s0" : "=r" (x));
+  return x;
+} 
+// ch4.2 end
+
 typedef uint64 pte_t;
 typedef uint64 *pagetable_t; // 512 PTEs
 
