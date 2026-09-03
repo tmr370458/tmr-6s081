@@ -68,6 +68,22 @@ usertrap(void)
     syscall();
   } else if ((which_dev = devintr()) != 0) {
     // ok
+    if(which_dev == 2){
+      // timer interrupt
+      if(p->alarm_interval > 0 && p->alarm_active == 0){
+        p->alarm_ticks++;
+      
+        if(p->alarm_ticks == p->alarm_interval){
+          p->alarm_active = 1;
+          *p->alarm_trapframe = *p->trapframe;
+          p->trapframe->epc = p->alarm_handler;
+          p->alarm_ticks = 0;
+      }
+  
+      }
+      
+      
+    }
   } else if ((r_scause() == 15 || r_scause() == 13) &&
              vmfault(p->pagetable, r_stval(), (r_scause() == 13) ? 1 : 0) !=
                0) {

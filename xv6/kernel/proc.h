@@ -104,4 +104,12 @@ struct proc {
   char name[16];               // Process name (debugging)
 
   uint64 tracemask;      //mask for tracing
+
+  // ch4.3 begin
+  int alarm_ticks;       // total ticks have passed
+  int alarm_interval;    // interval between alarm
+  uint64 alarm_handler;  // user handler address
+  struct trapframe *alarm_trapframe;  // save trapframe before alarm
+  int alarm_active;      // a lock against re-entrant 0 free 1 lock
+  // ch4.3 end
 };

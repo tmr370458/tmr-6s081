@@ -51,3 +51,9 @@ void printf(const char *, ...) __attribute__((format(printf, 1, 2)));
 // umalloc.c
 void *malloc(uint);
 void free(void *);
+
+
+// ch4.3 begin
+int sigalarm(int ticks, void (*handler)());
+int sigreturn(void);
+// ch4.3 end

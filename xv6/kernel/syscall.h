@@ -24,3 +24,7 @@
 #define SYS_sync   23
 #define SYS_trace  24
 #define SYS_sysinfo   25
+// ch4.3 begin
+#define SYS_sigalarm  26
+#define SYS_sigreturn 27
+// ch4.3 end

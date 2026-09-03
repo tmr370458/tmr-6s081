@@ -165,6 +165,20 @@ found:
   p->context.ra = (uint64)forkret;
   p->context.sp = p->kstack + PGSIZE;
 
+  p->tracemask  = 0;
+
+  // ch4.3 begin
+  p->alarm_interval = 0;
+  p->alarm_handler  = 0;
+  p->alarm_ticks    = 0;
+  if ((p->alarm_trapframe = (struct trapframe *)kalloc()) == 0) {
+    freeproc(p);
+    release(&p->lock);
+    return 0;
+  }
+  p->alarm_active = 0;
+  // ch4.3 end
+
   return p;
 }
 
@@ -189,6 +203,15 @@ freeproc(struct proc *p)
   p->killed = 0;
   p->xstate = 0;
   p->state = UNUSED;
+
+  p->tracemask  = 0;
+  
+  // ch4.3 begin
+  p->alarm_interval  = 0;
+  p->alarm_handler   = 0;
+  p->alarm_ticks     = 0;
+  p->alarm_trapframe = 0;
+  // ch4.3 end
 
   if (p->kpagetable){
     kvmfreeproc(p);
@@ -669,6 +692,7 @@ setkilled(struct proc *p)
   release(&p->lock);
 }
 
+// If non-zero, have been killed
 int
 killed(struct proc *p)
 {
@@ -741,3 +765,31 @@ procdump(void)
     printk("\n");
   }
 }
+
+
+// ch4.3 begin
+uint64
+sys_sigalarm(void){
+  struct proc *p = myproc();
+  int interval;
+  uint64 handler;
+
+  argint(0,&interval);
+  argaddr(1,&handler);
+
+  p->alarm_interval = interval;
+  p->alarm_handler  = handler;
+  p->alarm_ticks    = 0;
+
+  return 0 ;
+
+}
+
+uint64
+sys_sigreturn(void){
+  struct proc *p = myproc();
+  *p->trapframe = *p->alarm_trapframe; 
+  p->alarm_active = 0;
+  return 0;
+}
+// ch4.3 end
