@@ -48,6 +48,7 @@ sys_sbrk(void)
   addr = myproc()->sz;
 
   if (t == SBRK_EAGER || n < 0) {
+    // allocate memory immediately
     if (growproc(n) < 0) {
       return -1;
     }
@@ -61,7 +62,7 @@ sys_sbrk(void)
       return -1;
     myproc()->sz += n;
   }
-  return addr;
+  return addr;44
 }
 
 uint64

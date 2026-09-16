@@ -358,23 +358,37 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
   pte_t *pte;
   uint64 pa, i;
   uint flags;
-  char *mem;
 
   for (i = 0; i < sz; i += PGSIZE) {
+
     if ((pte = walk(old, i, 0)) == 0)
-      continue; // page table entry hasn't been allocated
+      continue;  // page table entry hasn't been allocated
+
     if ((*pte & PTE_V) == 0)
-      continue; // physical page hasn't been allocated
+      continue;  // physical page hasn't been allocated
+
     pa = PTE2PA(*pte);
+
     flags = PTE_FLAGS(*pte);
-    if ((mem = kalloc()) == 0)
-      goto err;
-    memmove(mem, (char *)pa, PGSIZE);
-    if (mappages(new, i, PGSIZE, (uint64)mem, flags) != 0) {
-      kfree(mem);
-      goto err;
+    // ch6 begin  
+    if(flags & PTE_W){
+    // Remove write permission from parent.
+    *pte &= ~PTE_W;
+    // Mark the page as COW.
+    *pte |= PTE_COW;
     }
-  }
+    flags = PTE_FLAGS(*pte);
+
+    // Map child's virtual address to the same physical page.
+    if (mappages(new, i, PGSIZE, pa, flags) != 0)
+      goto err;
+
+    // Parent and child now share this physical page.
+    kaddref(pa);
+    
+    }
+    // ch6 end
+
   return 0;
 
 err:

@@ -104,6 +104,10 @@ void            yield(void);
 int             either_copyout(int user_dst, uint64 dst, void *src, uint64 len);
 int             either_copyin(void *dst, int user_src, uint64 src, uint64 len);
 void            procdump(void);
+    // ch6 begin
+void kaddref(uint64);
+int kref(uint64);
+    // ch6 end
 
 // swtch.S
 void            swtch(struct context*, struct context*);
@@ -176,7 +180,7 @@ uint64          vmfault(pagetable_t, uint64, int);
 void            vmprint(pagetable_t);
 
 // ch3.3 begin
-// copyin.c   
+    // copyin.c   
 int             copyin_new(pagetable_t , char *, uint64 , uint64 );
 int             copyinstr_new(pagetable_t , char *, uint64 , uint64 );
 void            copy_proc_to_kernel(pagetable_t, pagetable_t, uint64, uint64);
@@ -192,10 +196,9 @@ void            plic_complete(int);
 void            virtio_disk_init(void);
 void            virtio_disk_rw(struct buf *, int);
 void            virtio_disk_intr(void);
-
-// ch4.2 begin
+    // ch4.2 begin
 void            backtrace(void);
-// ch4.2 end
+    // ch4.2 end
 
 // number of elements in fixed-size array
 #define NELEM(x) (sizeof(x) / sizeof((x)[0]))

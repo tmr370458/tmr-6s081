@@ -84,11 +84,65 @@ usertrap(void)
       
       
     }
-  } else if ((r_scause() == 15 || r_scause() == 13) &&
-             vmfault(p->pagetable, r_stval(), (r_scause() == 13) ? 1 : 0) !=
-               0) {
-    // page fault on lazily-allocated page
-  } else {
+  }   else if(r_scause() == 15) {// ch6 begin
+    // store page fault:
+    // could be COW or lazy allocation
+
+    uint64 va = r_stval();
+
+    pte_t *pte = walk(p->pagetable, va, 0);
+
+    if(pte != 0 && (*pte & PTE_COW)) {
+      // -----------------------
+      // COW page fault
+      // -----------------------
+
+      uint64 old_pa = PTE2PA(*pte);
+
+      char *mem = kalloc();
+
+      if(mem == 0) {
+        setkilled(p);
+      } else {
+
+        // copy old page
+        memmove(mem, (char *)old_pa, PGSIZE);
+
+        uint flags = PTE_FLAGS(*pte);
+
+        // restore write permission
+        flags |= PTE_W;
+
+        // remove COW flag
+        flags &= ~PTE_COW;
+
+        // install new physical page
+        *pte = PA2PTE((uint64)mem) | flags;
+
+        // decrease old page reference count
+        kfree((void *)old_pa);
+      }
+
+    } else {
+      // -----------------------
+      // Lazy allocation
+      // -----------------------
+
+      if(vmfault(p->pagetable, va, 0) == 0)
+        setkilled(p);
+    }
+
+
+  } else if(r_scause() == 13) {
+    // load page fault:
+    // only lazy allocation
+
+    if(vmfault(p->pagetable, r_stval(), 1) == 0)
+      setkilled(p);
+    
+
+    // ch6 end 
+  }else {
     printk("usertrap(): unexpected scause 0x%lx pid=%d\n", r_scause(), p->pid);
     printk("            sepc=0x%lx stval=0x%lx\n", r_sepc(), r_stval());
     setkilled(p);
