@@ -21,7 +21,7 @@ struct run {
 struct {
   struct spinlock lock;
   struct run *freelist;
-} kmem;
+} kmem[NCPU];// ch8.1
 
 // ch6 begin
 struct {
@@ -33,7 +33,14 @@ struct {
 void
 kinit()
 {
-  initlock(&kmem.lock, "kmem");
+  // ch8.1 begin
+  for(int i=0; i<NCPU; i++){
+    char name[9] = {0};
+    snprintf(name, 8, "kmem-%d", i);
+    initlock(&kmem[i].lock, name);
+  }
+  // ch8.1 end
+
   // ch6 begin
   initlock(&ref.lock,"ref");
   // ch6 end
@@ -83,11 +90,40 @@ kfree(void *pa)
   
   r = (struct run *)pa;
 
-  acquire(&kmem.lock);
-  r->next = kmem.freelist;
-  kmem.freelist = r;
-  release(&kmem.lock);
+  // ch8.1 begin
+  push_off();
+  int cpu = cpuid();
+
+  acquire(&kmem[cpu].lock);
+  r->next = kmem[cpu].freelist;
+  kmem[cpu].freelist = r;
+  release(&kmem[cpu].lock);
+  pop_off();
+  // ch8.1 end
 }
+
+// ch8.1 begin
+// steal pages from other cpu's freelist when needing
+struct run* 
+ksteal(int cpu)
+{
+  struct run *r;
+
+  for(int i = 1; i < NCPU; i++){ // try stealing from next one
+    int next_cpu = (cpu + i) % NCPU;
+    acquire(&kmem[next_cpu].lock);
+    r = kmem[next_cpu].freelist;
+    if(r){
+      kmem[next_cpu].freelist = r->next;
+    }
+    release(&kmem[next_cpu].lock);
+
+    if(r)
+      return r;
+  }
+  return 0;
+}
+// ch8.1 end
 
 // Allocate one 4096-byte page of physical memory.
 // Returns a pointer that the kernel can use.
@@ -95,13 +131,20 @@ kfree(void *pa)
 void *
 kalloc(void)
 {
-  struct run *r;
+  struct run *r ;
+  // ch8.1 begin
+  push_off();
+  int cpu = cpuid();
 
-  acquire(&kmem.lock);
-  r = kmem.freelist;//get the 1st page from the freelist
+  acquire(&kmem[cpu].lock);
+  r = kmem[cpu].freelist;//get the 1st page from the freelist
   if (r)
-    kmem.freelist = r->next;  //forward shift
-  release(&kmem.lock);
+    kmem[cpu].freelist = r->next;  //forward shift
+  release(&kmem[cpu].lock);
+
+  if(r == 0){
+    r = ksteal(cpu);
+  }
 
   if (r)  
     memset((char *)r, 5, PGSIZE); // fill with junk
@@ -112,6 +155,8 @@ kalloc(void)
     release(&ref.lock);
     // ch6 end
 
+  pop_off();
+  // ch8.1 end
   return (void *)r;
 }
 
